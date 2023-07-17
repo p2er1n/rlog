@@ -1,0 +1,16 @@
+#+title: differences_between_simulator_and_emulator
+#+author: Peerin
+#+date: <2023-07-17 一>
+
+* simulator
+Chinese: *仿真器*
+
+In CS, it refers to the software which behaves like another hardware or device especially for studying and researching it.
+
+For example, if there is a software displaying 3d model of real world, we can call it a simulator.
+* emulator
+Chinese: *模拟器*
+
+In CS, it refers to the software which behaves like another hardware or device but especially for using it.
+
+For example, QEMU is a emulator.
