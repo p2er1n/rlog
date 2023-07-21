@@ -1,0 +1,246 @@
+#+title: translation_of_mintest_tutorial
+#+author: Peerin(translator)
+#+date: <2023-07-17 一>
+
+* Getting Started
+
+* Lua Scripting
+
+* 节点，物品，和制作（Nodes, Items, and Crafting）
+** 介绍（Introduction）
+注册新的节点和工艺品，以及创建工艺配方是许多模组的基本需要。
+** 什么是节点和物品？（What are Nodes and Items?）
+节点（node），工艺品（craftitem）和工具（tool）都是物品（Item）。物品能够放在库存中 —— 即使通过正常的游玩游戏不可能获得。
+节点是能够在游戏世界中被放置和发现的物品。世界中的每个位置有且必有一个节点 —— 看起来空白的位置通常是空气节点。
+工艺品不能够被放置，只能被放在库存中或者作为掉落物品存在在世界中。
+工具具有磨损能力并且通常具有非默认挖掘能力。将来，工艺品和工具很可能会合并为一种类型的物品，因为它们之间的区别相当人为.
+** 注册物品（Registering Items）
+物品定义由物品名称和定义表组成。定义表包含影响物品行为的属性。
+#+BEGIN_SRC lua
+minetest.register_craftitem("modname:itemname", {
+    description = "My Special Item",
+    inventory_image = "modname_itemname.png"
+})
+#+END_SRC
+*** 物品名字（Item Names）
+每个物品都有一个用于引用它的物品名称，该名称应采用以下格式：
+#+BEGIN_SRC lua
+modname:itemname
+#+END_SRC
+modname是物品注册的mod的名称，物品名称是物品本身的名称。物品名称应与该物品相关，且不能已注册。
+modname 和 itemname 都只能包含小写字母、数字和下划线。
+*** 物品别名（Item Aliases）
+物品还可以有指向其名称的别名。别名是一个伪物品名称，它会导致引擎将任何出现的别名视为物品名称。它有两个主要的常见用途：
+- 将删除的物品重命名为其他名称。如果在没有任何纠正代码的情况下从模组中删除某个物品，则世界和库存中可能存在未知节点。
+- 添加快捷方式。 /giveme dirty 比 /giveme default:dirt 更容易。
+注册别名非常简单。记住参数顺序的一个好方法是 from → to，其中 from 是别名，to 是目标。
+#+BEGIN_SRC lua
+minetest.register_alias("dirt", "default:dirt")
+#+END_SRC
+Mod 需要确保在直接处理物品名称之前解析别名，因为引擎不会这样做。但这很简单：
+#+BEGIN_SRC lua
+itemname = minetest.registered_aliases[itemname] or itemname
+#+END_SRC
+*** 纹理（Textures）
+纹理应放置在texture/文件夹中，名称格式为modname_itemname.png。
+支持 JPEG 纹理，但它们不支持透明度，并且在低分辨率下质量通常很差。通常使用 PNG 格式更好。
+Minetest 中的纹理通常为 16 x 16 像素。它们可以是任何分辨率，但建议按 2的顺序排列，例如 16、32、64 或 128。这是因为旧设备（尤其是手机）可能无法正确支持其他分辨率，从而导致性能下降。
+** 注册基本节点（Registering a basic node）
+注册节点与注册物品类似，只是功能不同：
+#+BEGIN_SRC lua
+minetest.register_node("mymod:diamond", {
+    description = "Alien Diamond",
+    tiles = {"mymod_diamond.png"},
+    is_ground_content = true,
+    groups = {cracky=3, stone=1}
+})
+#+END_SRC
+节点定义可以包含物品定义中的任何属性，还可以包含特定于节点的其他属性。
+tiles 属性是节点将使用的纹理名称表。当只有一个纹理时，每一侧都使用该纹理。要为每面提供不同的纹理，请按以下顺序提供 6 个纹理的名称：
+#+BEGIN_COMMENT
+up (+Y), down (-Y), right (+X), left (-X), back (+Z), front (-Z).
+(+Y, -Y, +X, -X, +Z, -Z)
+#+END_COMMENT
+请记住，+Y 在 Minetest 中向上，这是大多数 3D 电脑游戏的惯例。
+#+BEGIN_SRC lua
+minetest.register_node("mymod:diamond", {
+    description = "Alien Diamond",
+    tiles = {
+        "mymod_diamond_up.png",    -- y+
+        "mymod_diamond_down.png",  -- y-
+        "mymod_diamond_right.png", -- x+
+        "mymod_diamond_left.png",  -- x-
+        "mymod_diamond_back.png",  -- z+
+        "mymod_diamond_front.png", -- z-
+    },
+    is_ground_content = true,
+    groups = {cracky = 3},
+    drop = "mymod:diamond_fragments"
+    -- ^  Rather than dropping diamond, drop mymod:diamond_fragments
+})
+#+END_SRC
+is_ground_content 属性允许在石头上生成洞穴。这对于在地图生成过程中可能放置在地下的任何节点都是至关重要的。在一个区域中的所有其他节点生成后，洞穴就会从世界中消失。
+** 制作（Crafting）
+有多种类型的制作配方可用，由 type 属性指示。
+- 形状 - 成分必须处于正确的位置。
+- 无形 - 成分在哪里并不重要，重要的是有正确的数量。
+- 烹饪 - 炉子使用的食谱。
+- 燃料 - 定义可以在熔炉中燃烧的物品。
+- tool_repair - 定义可以用工具修复的物品。
+工艺配方不是物品，因此它们不使用物品名称来唯一标识自己。
+*** 成形（Shaped）
+形状食谱是指原料需要具有正确的形状或图案才能发挥作用。在下面的示例中，碎片需要呈椅子状图案才能让工艺发挥作用。
+#+BEGIN_SRC lua
+minetest.register_craft({
+    type = "shaped",
+    output = "mymod:diamond_chair 99",
+    recipe = {
+        {"mymod:diamond_fragments", "",                         ""},
+        {"mymod:diamond_fragments", "mymod:diamond_fragments",  ""},
+        {"mymod:diamond_fragments", "mymod:diamond_fragments",  ""}
+    }
+})
+#+END_SRC
+需要注意的一件事是右侧的空白列。这意味着形状右侧必须有一个空列，否则将不起作用。如果不需要此空列，则可以省略空字符串，如下所示：
+#+BEGIN_SRC lua
+minetest.register_craft({
+    output = "mymod:diamond_chair 99",
+    recipe = {
+        {"mymod:diamond_fragments", ""                       },
+        {"mymod:diamond_fragments", "mymod:diamond_fragments"},
+        {"mymod:diamond_fragments", "mymod:diamond_fragments"}
+    }
+})
+#+END_SRC
+形状工艺品实际上不需要类型字段，因为形状是默认的工艺品类型。
+*** 无形的（Shapeless）
+无形状食谱是一种当成分放置在哪里并不重要，只要它们在那里就可以使用的食谱。
+#+BEGIN_SRC lua
+minetest.register_craft({
+    type = "shapeless",
+    output = "mymod:diamond 3",
+    recipe = {
+        "mymod:diamond_fragments",
+        "mymod:diamond_fragments",
+        "mymod:diamond_fragments",
+    },
+})
+#+END_SRC
+*** 烹饪和燃料（Cooking and Fuel）
+类型为“烹饪”的食谱不是在制作网格中制作的，而是在熔炉或模组中可能找到的其他烹饪工具中烹饪的。
+#+BEGIN_SRC lua
+minetest.register_craft({
+    type = "cooking",
+    output = "mymod:diamond_fragments",
+    recipe = "default:coalblock",
+    cooktime = 10,
+})
+#+END_SRC
+代码中唯一真正的区别是，与表中（大括号之间）相比，配方只是一个物品。它们还有一个可选的“烹饪时间”参数，用于定义烹饪所需的时间。如果未设置，则默认为 3。
+当煤块位于输入槽中且其下方有某种形式的燃料时，上述配方有效。 10秒后它会产生钻石碎片！
+这种类型是烹饪类型的补充，因为它定义了可以在模组中的熔炉和其他烹饪工具中燃烧的内容。
+#+BEGIN_SRC lua
+minetest.register_craft({
+    type = "fuel",
+    recipe = "mymod:diamond",
+    burntime = 300,
+})
+#+END_SRC
+它们没有像其他配方那样的输出，但它们有一个燃烧时间，定义了它们作为燃料的持续时间（以秒为单位）。所以，钻石可以作为300秒的燃料！
+** 团体（Groups）
+物品可以是多个组的成员，并且组可以有多个成员。组是使用定义表中的groups 属性定义的，并具有关联的值。
+#+BEGIN_SRC lua
+groups = {cracky = 3, wood = 1}
+#+END_SRC
+使用组的原因有多种。首先，组用于描述挖掘类型和可燃性等属性。其次，可以在工艺配方中使用组而不是物品名称，以允许使用组中的任何物品。
+#+BEGIN_SRC lua
+minetest.register_craft({
+    type = "shapeless",
+    output = "mymod:diamond_thing 3",
+    recipe = {"group:wood", "mymod:diamond"}
+})
+#+END_SRC
+** 工具、功能和挖掘类型（Tools, Capabilities, and Dig Types）
+挖掘类型是用于定义使用不同工具挖掘时节点的强度的组。具有较高关联值的挖掘类型组意味着该节点更容易且更快地被切割。可以组合多种挖掘类型，以更有效地使用多种类型的工具。没有挖掘类型的节点无法使用任何工具进行挖掘。
+|-------------------------+-----------+---------------------------------------------------------------------------------------------|
+| Group                   | Best Tool | Description                                                                                 |
+| crumbly                 | spade     | Dirt, sand                                                                                  |
+| cracky                  | pickaxe   | Tough (but brittle) stuff like stone                                                        |
+| snappy                  | any       | Can be cut using fine tools;e.g. leaves, smallplants, wire, sheets of metal                 |
+| choppy                  | axe       | Can be cut using a sharp force; e.g. trees, wooden planks                                   |
+| fleshy                  | sword     | Living things like animals and the player.This could imply some blood effects when hitting. |
+| explody                 | ?         | Especially prone to explosions                                                              |
+| oddly_breakable_by_hand | any       | Torches and such - very quick to dig                                                        |
+|-------------------------+-----------+---------------------------------------------------------------------------------------------|
+每个工具都有其工具功能。功能包括支持的挖掘类型列表以及每种类型的相关属性，例如挖掘时间和磨损量。每种类型的工具还可以具有最大支持硬度，这使得可以防止较弱的工具挖掘较硬的节点。工具在其功能中包含所有挖掘类型是很常见的，而不太合适的挖掘类型则具有非常低效的属性。如果玩家当前使用的物品没有明确的工具能力，则使用当前手的能力。
+#+BEGIN_SRC lua
+minetest.register_tool("mymod:tool", {
+    description = "My Tool",
+    inventory_image = "mymod_tool.png",
+    tool_capabilities = {
+        full_punch_interval = 1.5,
+        max_drop_level = 1,
+        groupcaps = {
+            crumbly = {
+                maxlevel = 2,
+                uses = 20,
+                times = { [1]=1.60, [2]=1.20, [3]=0.80 }
+            },
+        },
+        damage_groups = {fleshy=2},
+    },
+})
+#+END_SRC
+Groupcaps 是挖掘节点支持的挖掘类型列表。损坏组用于控制工具如何损坏对象，这将在稍后的对象、玩家和实体章节中讨论。
+
+
+* Node and Item Callbacks
+
+* Creating Textures
+
+* Node Drawtypes
+
+* ItemStacks and Inventories
+
+* Basic Map Operations
+
+* Node Timers and ABMs
+
+* Storage and Metadata
+
+* Objects, Players, and Entities
+
+* Objects, Players, and Entities
+
+* Privileges
+
+* Chat and Commands
+
+* Player Physics
+
+* GUIs (Formspecs)
+
+* HUD
+
+* Biomes and Decorations
+
+* Lua Voxel Manipulators
+
+* Creating Games
+
+* Translation (i18n / l10n)
+
+* Common Mistakes
+
+* Automatic Error Checking
+
+* Security
+
+* Intro to Clean Architectures
+
+* Automatic Unit Testing
+
+* Releasing a Mod
+
+* Read More
+

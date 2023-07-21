@@ -1,0 +1,13 @@
+#+title: differences_between_generic_and_general
+#+author: Peerin
+#+date: <2023-07-17 一>
+
+* generic
+chinese: *普通的*
+Something without any unique features is generic.
+a generic man 一个普通人
+
+* general
+chinese: *通用的*
+General is the opposite of *specific*.
+a general programming language 一个通用编程语言
