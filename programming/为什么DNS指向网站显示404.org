@@ -28,7 +28,7 @@ DNS的作用只是帮你获取目标服务器的IP地址，帮助发送TCP包，
 
 然后浏览器就开始建立TCP连接，发送HTTP包了。
 
-HTTP包包含头部信息，下面是直接访问www.google.com和通过CNAME记录访问谷歌时，浏览构造的不同http请求头：
+HTTP包包含头部信息，下面是直接访问www.google.com和通过CNAME记录访问谷歌时，浏览器构造的不同http请求头：
 
 直接访问：
 #+BEGIN_QUOTE
@@ -59,13 +59,13 @@ Connection: keep-alive
 Upgrade-Insecure-Requests: 1
 #+END_QUOTE
 
-可以看到，第二种方式请求的Host值为你设置的CNAME记录的域名，这就是发送到谷歌服务器的最终信息。
+可以看到，第二种方式请求头的Host值为你设置的CNAME记录的域名，这就是发送到谷歌服务器的最终信息。
 
-谷歌服务器的web程序收到请求后会检查访问的目标Host,如果找到了，再传入URL位置的值给它。但是在直接这里，谷歌的web程序肯定没有查到我们自己的这个host,因此就会返回404页面。
+谷歌服务器的web程序收到请求后会检查访问的目标Host,如果找到了，再传入URL位置的值给它。但是在这里，谷歌的web程序肯定没有查到我们自己的这个host,因此就会返回404页面。
 
 有的web程序可能忽略了这个值，因此会返回正确页面，有的是会返回重定向页面，直接让浏览器再访问官方的域名，比如github.com
 
-这让我想起了之前使用github page搭建静态博客的经历，github page支持使用自己的CNAME记录，但是需要再仓库根目录下创建CNAME文件，并且在里面设置自己的CNAME记录的域名
+这让我想起了之前使用github page搭建静态博客的经历，github page支持使用自己的CNAME记录，但是需要在仓库根目录下创建CNAME文件，并且在里面设置自己的CNAME记录的域名
 
 现在想想，应该就是这个原因了！
 
