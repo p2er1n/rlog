@@ -1,0 +1,74 @@
+#+title: 为什么DNS指向网站显示404
+#+author: Peerin
+#+date: <2023-08-11 五>
+
+* 起源
+
+今天在逛rss的时候看到一篇文章，其中推荐了一个[[https://messwithdns.net/][DNS学习网站]]，非常方便，能够让你快速添加各种DNS记录来学习和测试，记录在一周后都会被删除。
+
+里面还提到了几种让人困惑的DNS实验，其中有一个便是本文章要讲的内容。
+
+* 问题
+
+我们知道，DNS记录有一种 *CNAME* 类型的记录，这种记录的内容是目标网站的 *域名* 而不是 *IP地址* ，所以他可以当作一个中间跳转， 最终你可以得到目标服务器的IP地址。
+
+但是， 如果你尝试一下，很多情况下，你会得到一个 *404* 而不是网站的默认网页或其他。
+
+* 解释
+
+其实很简单，几句话就可以解释清楚，你也可以思考一下。就算想不出，当看完我的解释后，你也会恍然大悟。
+
+DNS的作用只是帮你获取目标服务器的IP地址，帮助发送TCP包，至于包到达目标服务器之后，服务器如何解释，返回什么网站，看的是你的HTTP请求内容，是应用层的包。
+
+首先，返回404代表你确实通过DNS找到了目标服务器的IP地址，包送到了，只不过目标服务器根据包的内容返回了404的网页内容。
+
+为什么目标服务器返回404的网页呢？ 回想一下浏览器在访问你设置的DNS记录的时候做了什么。
+
+首先浏览器询问DNS服务器你的记录内容，DNS服务器返回一个CNAME记录，然后你的浏览器再通过DNS请求CNAME记录的内容，最后得到目标服务器的IP地址。
+
+然后浏览器就开始建立TCP连接，发送HTTP包了。
+
+HTTP包包含头部信息，下面是直接访问www.google.com和通过CNAME记录访问谷歌时，浏览构造的不同http请求头：
+
+直接访问：
+#+BEGIN_QUOTE
+GET / HTTP/2
+Host: www.google.com
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/116.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8
+Accept-Language: zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2
+Accept-Encoding: gzip, deflate, br
+Connection: keep-alive
+Upgrade-Insecure-Requests: 1
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: none
+Sec-Fetch-User: ?1
+TE: trailers
+#+END_QUOTE
+
+通过CNAME记录访问：
+#+BEGIN_QUOTE
+GET / HTTP/1.1
+Host: google.willow219.messwithdns.com
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/116.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8
+Accept-Language: zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2
+Accept-Encoding: gzip, deflate
+Connection: keep-alive
+Upgrade-Insecure-Requests: 1
+#+END_QUOTE
+
+可以看到，第二种方式请求的Host值为你设置的CNAME记录的域名，这就是发送到谷歌服务器的最终信息。
+
+谷歌服务器的web程序收到请求后会检查访问的目标Host,如果找到了，再传入URL位置的值给它。但是在直接这里，谷歌的web程序肯定没有查到我们自己的这个host,因此就会返回404页面。
+
+有的web程序可能忽略了这个值，因此会返回正确页面，有的是会返回重定向页面，直接让浏览器再访问官方的域名，比如github.com
+
+这让我想起了之前使用github page搭建静态博客的经历，github page支持使用自己的CNAME记录，但是需要再仓库根目录下创建CNAME文件，并且在里面设置自己的CNAME记录的域名
+
+现在想想，应该就是这个原因了！
+
+懂了吗，还是更加困惑了？XDDDD
+
+
