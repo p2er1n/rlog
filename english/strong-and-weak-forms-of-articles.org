@@ -1,0 +1,40 @@
+#+title: strong-and-weak-forms-of-articles
+#+author: Peerin
+#+date: <Fri Sep 22 20:12:58 2023>
+
+* the
+
+the strong form: /ði:/
+
+the weak form: /ðə/
+
+* a
+
+the strong form: /ei/
+
+the weak form: /ə/
+
+* an
+
+the strong form: /æn/
+
+the weak form: /ən/
+
+* source
+
+英语的两个冠词the和a都有强读和弱读这两种形式，称为the strong form和the weak form。
+
+the的强读形式是/ði:/，a的强读形式是/ei/；其弱读都是把元音读成/ə/。
+
+通常情况下都是弱读，所谓通常情况，就是冠词和名词之间没有停顿，不需要突出冠词。
+
+有时候说话人先说了a或the，但是没有想好后面的词，这时单说a或the，要拖长发音，于是就强读。
+
+有时候说话人为了强调the（强调‘唯一性’）或a（强调‘单一性’，即不是复数），也采用强读。the和a有一点不同，即如果后面的名词是元音时，the采用强读，a读成ən/。
+
+a的强读没有the那么常见，但是在口语中，仍然比较常见。
+
+作者：lin jamie
+链接：https://www.zhihu.com/question/36186308/answer/76442075
+来源：知乎
+著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。
