@@ -88,4 +88,4 @@ command1 [; command2 ...]
 
 fname ( ) compound-command [io-redirect ...]
 
-
+注意括号不是参数表，不能添加参数。
