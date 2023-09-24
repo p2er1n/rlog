@@ -1,0 +1,91 @@
+#+title: posix shell如何读取、分析和执行输入
+#+author: Peerin
+#+date: <Sun Sep 24 10:43:49 2023>
+
+shell 是按行读入的。
+
+每读入一行，先进行token分割，然后进行word扩展，然后执行。
+
+* token分割
+
+在这一过程中，被分割的token会保持他们的原初样子，不会被修改，仅仅是被分离出来。
+
+例如：
+
+echo $(date $(echo +%D)) | tee >a.txt &
+
+被分割成
+
+"echo" "$(date $(echo +%D))" "|" "tee" ">a.txt" "&"
+
+注意引号不是token的一部分，仅仅用来包围token表示token的范围。
+
+注意$()不会在现在被扩展，而且他被看作一个整体，包括他内部的嵌套的扩展。
+
+* word扩展
+
+按顺序进行，只有符合条件才扩展
+
+1. Tilde扩展、参数扩展、命令替换、算术扩展
+2. Field分割
+   根据IFS分割word,不分割引用内容。
+3. 路径名扩展
+4. 引用移除
+   移除\,',"除非这些字符被引用
+
+现在word已经被分割成没有引用的field了，因为第二个扩展，所以一个word可以产生多个field。
+
+* 重定向
+
+输入输出和here-document
+
+这意味着，一条命令执行的时候，重定向会改变整个shell环境的输入输出，位置是不重要的。
+
+重定向是一条命令的一部分
+
+* 执行命令
+
+** 简单命令
+
+** 管道命令
+
+[!] command1 [ | command2 ...]
+
+** 命令列表
+
+*** 异步命令列表
+
+command1 & [command2 & ...]
+
+*** 顺序命令列表
+
+command1 [; command2 ...]
+
+*** and-or命令列表
+
+一系列由 && 和 || 组合在一起的管道命令
+
+** 复合命令
+
+*** 分组命令
+
+1. ( compound-list )
+   子shell执行
+2. { compund-list; }
+   当前shell
+
+*** for 循环
+
+*** case 条件结构
+
+*** if 条件结构
+
+*** while 循环
+
+*** until 循环
+
+** 函数定义命令
+
+fname ( ) compound-command [io-redirect ...]
+
+
