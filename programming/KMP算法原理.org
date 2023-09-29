@@ -84,19 +84,19 @@ abcabb
 ** cpp
 
 #+begin_src cpp
-  int kmp(string &s, string &ss){
-    //假设next数组已知
-    for(int i = 0, j = 0;i < s.length() && j < ss.length();){
-      if(s[i] != ss[j]){
-	j = next[j];
-	if(j == 0 && s[i] != ss[j]) i++;
-      }else{
-	if(j == ss.length()-1) return i-j;
-	i++;
-	j++;
-      }
+int kmp(string &s, string &ss){
+  //假设next数组已知
+  for(int i = 0, j = 0;i < s.length() && j < ss.length();){
+     if(s[i] != ss[j]){
+      j = j == 0 ? 0 : nxt[j-1];
+      if(j == 0 && s[i] != ss[j]) i++;
+    }else{
+      if(j == ss.length()-1) return i-j;
+      i++;
+      j++;
     }
-    return -1;
   }
+  return -1;
+}
 #+end_src
 
