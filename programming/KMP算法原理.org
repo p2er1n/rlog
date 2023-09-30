@@ -79,9 +79,74 @@ abcabb
 
 因此我们要求，如果模式串根据next数组回退到第一个字符的时候，和主串不匹配，主串索引加1。也就是回退到一般算法。
 
+* 求next数组
+
+网上有一些求next数组的方法，但是我记得之前自己了解过一种类似递推的求next数组的方法，基本搞清楚了，用起来也觉得没问题。
+
+模式串：abcabaab
+
+基本思路就是，对于每一个位置上的字符，如果它前面位置的next数组值为0,也就是前面部分没有共同前后缀，那么如果它和第一个字符相等，next数组设为1,否则，设为0。
+
+如果它前面位置的next数组值不为0,那就取他的值，比较next[i-1]位置上的字符和当前字符，如果相等，next数组就设为next[i-1]+1，否则，取next[next[i-1]-1]，
+
+比较next[next[i-1]-1]位置上的字符和当前字符，如果相等，就设为，next[next[i-1]-1]+1，否则，继续取他的最大公共前后缀长度，然后继续比较。直到j=0,就比较第一个字符和当前字符，
+
+如果相等，就设为0+1,否则就不再继续，设为0并退出。
+
+0 1 2 3 4 5 6 7
+a b c a b a a b
+0 0 0 1 2 1 1 2
+
+求位置5的next值：
+
+abcaba
+**^
+   **^ 
+
+next[5-1] = 2, s[2] != a, 取 next[2-1] = 0
+
+abcaba
+^    ^
+
+s[0] == a , next[5] = 0 + 1 = 1
+
+另一个示例:
+
+0 1 2 3 4 5 6
+a a a a a a b
+0 1 2 3 4 5 0
+
+求next[6]，
+
+next[6-1] = 5
+
+aaaaaab
+*****^
+ *****^ 
+
+s[5] != b, 取next[5-1] = 4,
+
+aaaaaab
+****^
+  ****^
+
+s[4] != b, 取next[4-1] = 3;
+
+...
+
+s[1] != b, 取next[1-1] = 0;
+
+aaaaaab
+^
+      ^
+
+s[0] != b, 设next[6] = 0      
+
 * 代码
 
 ** cpp
+
+*** kmp
 
 #+begin_src cpp
 int kmp(string &s, string &ss){
@@ -100,3 +165,34 @@ int kmp(string &s, string &ss){
 }
 #+end_src
 
+*** 求next数组
+
+#+begin_src cpp
+void qnxt(string &p,vector<int> &nxt){
+  int len = p.length();
+  nxt[0] = 0;
+  for(int i = 1;i < len;++i){
+    if(nxt[i-1]==0)
+      if(p[i] == p[0])
+	nxt[i] = 1;
+      else
+	nxt[i] = 0;
+    else{
+      int j = nxt[i-1];
+      while(j >= 0){
+	if(p[j] == p[i]){
+	  nxt[i] = j + 1;
+	  break;
+	}else{
+	  if(j == 0){
+	    nxt[i] = 0;
+	    break;
+	  }
+	  j = nxt[j-1];
+	}
+      }
+    }
+  }
+}
+
+#+end_src
