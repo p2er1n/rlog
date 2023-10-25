@@ -193,7 +193,6 @@ minetest.register_tool("mymod:tool", {
 #+END_SRC
 Groupcaps 是挖掘节点支持的挖掘类型列表。损坏组用于控制工具如何损坏对象，这将在稍后的对象、玩家和实体章节中讨论。
 
-
 * Node and Item Callbacks
 
 * Creating Textures
