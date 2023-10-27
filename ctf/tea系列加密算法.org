@@ -1,0 +1,87 @@
+#+title: tea系列加密算法
+#+author: Peerin
+#+date: <2023-10-27 周五>
+
+* tea
+
+Tiny Encryption Algorithm
+
+一种分组加密算法，分组长度为64位，密钥长度为128位。
+
+#+begin_src c
+  void encrypt(uint32_t v[2], uint32_t k[4]){//v是待加密分组，k是加密密钥
+    unsigned long long sum = 0,delta = 0x9e3779b9;//delta是黄金分割常数，delta=(sqrt(5)-1)*pow(2,31)
+    uint32_t x = v[0], y = v[1];
+    size_t n = 32;//加密轮数
+    while(n--){
+      sum += delta;
+      x += ((y<<4)+k[0]) ^ (y+sum) ^ ((y>>5)+k[1]);//用到了上一轮的y，密钥前64位
+      y += ((x<<4)+k[2]) ^ (x+sum) ^ ((x>>5)+k[3]);//用到了这一轮的x，密钥后64位
+      //都用到了本轮的sum
+    }
+    v[0] = x;
+    v[1] = y;
+  }
+#+end_src
+
+修改的tea可能会变更n（加密轮数）？delta？位移数量？密钥顺序？
+
+解密函数完全就是上面的逆向过程。
+#+begin_src c
+  void decrypt(uint32_t v[2], uint32_t k[4]){
+    unsigned long long delta = 0x9e377989, sum;
+    sum = delta << 5;//也就是delta * 2**5, 也就是delta * 32，对应上面的加密32轮，最后一轮时候sum的值。
+    size_t n = 32;//解密轮数
+    uint32_t x = v[0], y = v[1];
+    while(n--){
+      //这里对应加密函数循环的完全逆转。
+      y -= ((x<<4)+k[2]) ^ (x+sum) ^ ((x>>5)+k[3]);
+      x -= ((y<<4)+k[0]) ^ (y+sum) ^ ((y>>5)+k[1]);
+      sum -= delta;
+    }
+    v[0] = x;
+    v[1] = y;
+  }
+#+end_src
+
+* xtea
+
+eXtended TEA
+同样是分组加密，64位明文，128位密钥，加密轮数同样可变，不同在于，对于每轮每次密钥的选取以及异或、位移、加法的操作稍有不同。
+
+#+begin_src c
+  void encrypt(uint32_t v[2], uint32_t k[4]){//v -> data, k -> key
+    unsigned long long sum = 0, delta = 0x0e3779b9;
+    uint32_t x = v[0], y = v[1];
+    size_t n = 32;//changable
+    while(n--){
+      x += (((y<<4) ^ (y>>5)) + y) ^ (sum + k[sum & 3]);//不同轮，根据sum的不同，取的k也不同
+      sum += delta;//注意，每轮sum加的时机也变了
+      y += (((x<<4) ^ (x>>5)) + x) ^ (sum + k[(sum>>11) & 3]);
+    }
+    v[0] = x;
+    v[1] = y;
+  }
+#+end_src
+
+#+begin_src c
+  void decrypt(uint32_t v[2], uint32_t k[4]){
+    size_t n = 32;//轮数
+    unsigned long long delta = 0x9e3779b9, sum = delta * n;
+    uint32_t x = v[0], y = v[1];
+    while(n--){
+      //加密算法的逆过程
+      y -= (((x<<4) ^ (x>>5)) + x) ^ (sum + k[(sum>>11) & 3]);
+      sum -= delta;
+      x -= (((y<<4) ^ (y>>5)) + y) ^ (sum + k[sum & 3]);
+    }
+    v[0] = x;
+    v[1] = y;
+  }
+#+end_src
+
+* xxtea
+
+Corrected Block TEA
+
+变化：数据是可变长的，加密轮数会取决于加密数据的长度
