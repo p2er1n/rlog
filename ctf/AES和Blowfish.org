@@ -1,0 +1,126 @@
+#+title: AES和Blowfish
+#+author: Peerin
+#+date: <2023-10-27 周五>
+
+* AES
+
+Advanced Encryption Standard
+
+是美国联邦政府甄选的标准，最终选择了Rijndael加密法，但是略有改变。
+
+是区块加密（分组加密），明文数据是128位，密钥可以是128位、192位、256位，根据密钥长度不同，加密轮数不同。
+
+128位的明文数据按照一定的格式排成一个4*4矩阵，每个元素是一个字节大小。
+
+每轮经历这样的过程：
+1. AddRoundKey
+   矩阵中的每个字节都与 *本回合密钥* 做异或运算。
+   每个回合的密钥是由根密钥根据密钥生成方案生成的。
+2. SubBytes
+   通过一个替换表进行字节替换
+3. ShiftRows
+   每个横行进行循环式位移
+4. MixColumns（除最后一个回合），AddRoundKey（最后一个回合）
+   一些数学运算
+
+** AES key schedule 子密钥生成方案
+
+以128位密钥为例，
+#+ATTR_ORG: :width 100
+[[file:./imgs/493px-AES-Key_Schedule_128-bit_key.svg.png]]
+图中，RotWrod操作是对每个输入进行循环的位移，按照把最低位的字节旋转到最高位的顺序。
+SubWord操作是对每个字节进行S-box替换。
+Rcon是对每个输入（32位）异或上本轮的rcon常量。
+
+* Blowfish
+
+Blowfish也是分组加密，分组长度比较短，为64位，密钥长度可变，为32-448位。
+
+#+begin_src c
+  uint32_t P[18];
+  uint32_t S[4][256];
+
+  uint32_t f (uint32_t x) {
+     uint32_t h = S[0][x >> 24] + S[1][x >> 16 & 0xff];
+     return ( h ^ S[2][x >> 8 & 0xff] ) + S[3][x & 0xff];
+  }
+
+  void encrypt (uint32_t & L, uint32_t & R) {
+     for (int i=0 ; i<16 ; i += 2) {
+	L ^= P[i];
+	R ^= f(L);
+	R ^= P[i+1];
+	L ^= f(R);
+     }
+     L ^= P[16];
+     R ^= P[17];
+     swap (L, R);
+  }
+
+  void decrypt (uint32_t & L, uint32_t & R) {
+     for (int i=16 ; i > 0 ; i -= 2) {
+	L ^= P[i+1];
+	R ^= f(L);
+	R ^= P[i];
+	L ^= f(R);
+     }
+     L ^= P[1];
+     R ^= P[0];
+     swap (L, R);
+  }
+
+    // ...
+    // initializing the P-array and S-boxes with values derived from pi; omitted in the example
+    // ...
+  {
+     for (int i=0 ; i<18 ; ++i)
+	P[i] ^= key[i % keylen];
+     uint32_t L = 0, R = 0;
+     for (int i=0 ; i<18 ; i+=2) {
+	encrypt (L, R);
+	P[i] = L; P[i+1] = R;
+     }//这时候encrypt的时候，因为L，R都是0，因此f调用的结果都是0。
+     for (int i=0 ; i<4 ; ++i)
+	for (int j=0 ; j<256; j+=2) {
+	   encrypt (L, R);
+	   S[i][j] = L; S[i][j+1] = R;
+	}
+     //这时候同样，f的结果为0，但是这一步使用的P数组是上一步产生的。
+  }
+  //from wikipedia
+#+end_src
+
+* 对称密码的加密模式
+
+** CBC 加密模式
+
+Cipher Block Chaining
+
+适用于分组加密，在加密每一个块的时候，应用初始块或者上一个加密之后的块和当前块异或之后再加密。
+
+需要IV
+
+*** IV
+
+Initial Vector
+
+即初始化向量，就是加密第一个快的时候用到的和当前块异或的初始块。
+
+** ECB 加密模式
+
+Electronic Codebook
+
+块加密中比较简单的加密模式，每一块明文数据独立的生成加密块。
+
+不需要IV
+
+** CFB 加密模式
+
+Cipher Feedback
+
+需要IV
+
+** OFB 加密模式
+
+需要IV
+
