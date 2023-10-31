@@ -1,0 +1,226 @@
+#+title: pe_format
+#+author: Peerin
+#+date: <2023-10-31 周二>
+
+* PE
+
+Portable Executable format
+
+[[file:./imgs/340px-Portable_Executable_32_bit_Structure_in_SVG_fixed.svg.png]]
+* MS-DOS
+
+PE 文件的开头部分是MS-DOS头部，来使得在DOS下运行时给出错误提示。
+
+包括，DOS header(MZ header) 和 DOS Stub(一段程序，一般是输出错误提示。)
+
+#+begin_src c
+  struct IMAGE_DOS_HEADER_STRUCT {
+    uint16_t e_magic; // 'MZ' sign
+    uint16_t e_cblp;
+    uint16_t e_cp;
+    uint16_t e_crlc;
+    uint16_t e_cparhdr;
+    uint16_t e_minalloc;
+    uint16_t e_maxalloc;
+    uint16_t e_ss;
+    uint16_t e_sp;
+    uint16_t e_csum;
+    uint16_t e_ip;
+    uint16_t e_cs;
+    uint16_t e_lfarlc;
+    uint16_t e_ovno;
+    uint16_t e_res[4];
+    uint16_t e_oemid;
+    uint16_t e_oeminfo;
+    uint16_t e_res2[10];
+    uint32_t e_lfanew; //指向PE文件头
+  }
+  //这个结构后面就是DOS Stub，然后是'真正的'PE文件头
+#+end_src
+
+* PE header
+
+PE装载器从MS-header中找到e_lfanew然后跳过DOS Stub直接到达PE header部分。
+
+#+begin_src c
+  struct IMAGE_NT_HEADERS {
+    uint32_t Signature;
+    struct IMAGE_FILE_HEADER FileHeader;
+    struct IMAGE_OPTIONAL_HEADER OptionalHeader;
+  }
+#+end_src
+
+** Signature
+
+一般是常量IMAGE_NT_SIGNATURE,ASCII字符是"PE\0\0"
+
+** IMAGE_FILE_HEADER
+
+#+begin_src c
+  struct IMAGE_FILE_HEADER {
+    uint16_t Machine;//运行平台
+    uint16_t NumberOfSections;//文件的sections数量
+    uint32_t TimeDateStamp;//文件创建日期
+    uint32_t PointerToSymbolTable;//符号表（debug）
+    uint32_t NumberOfSymbols;//符号表符号个数(debug)
+    uint16_t SizeOfOptionalHeader;//IMAGE_OPTIONAL_HEADER32结构的大小
+    uint16_t Characteristics;//文件属性
+  }
+#+end_src
+
+*** Machine
+
+*** NumberOfSections
+
+紧跟在IMAGE_NT_HEADERS后面的section table里的section的数量。
+
+*** TimeDateStamp
+
+*** PointerToSymbolTable
+
+*** NumberOfSymbols
+
+*** SizeOfOptionalHeader
+
+紧跟在IMAGE_FILE_HEADER后面的IMAGE_OPTIONAL_HEADER的大小。
+
+*** Characteristics
+
+** IMAGE_OPTIONAL_HEADER
+
+#+begin_src c
+  struct IMAGE_OPTIONAL_HEADER {
+    uint16_t Magic;
+    uint8_t MajorLinkerVersion;
+    uint8_t MinorLinkerVersion;
+    uint32_t SizeOfCode;
+    uint32_t SizeOfInitializedData;
+    uint32_t SizeOfUninitializedData;
+    uint32_t AddressOfEntryPoint;    //这里便指明了程序加载进内存之后的执行入口点的rva
+    uint32_t BaseOfCode;
+    uint32_t BaseOfData;
+    uint32_t ImageBase;
+    uint32_t SectionAlignment;
+    uint32_t FileAlignment;
+    uint16_t MajorOperatingSystemVersion;
+    uint16_t MinorOperatingSystemVersion;
+    uint16_t MajorImageVersion;
+    uint16_t MinorImageVersion;
+    uint16_t MajorSubsystemVersion;
+    uint16_t MinorSubsystemVersion;
+    uint32_t Win32VersionValue;
+    uint32_t SizeOfImage;
+    uint32_t SizeOfHeaders;
+    uint32_t CheckSum;
+    uint16_t Subsystem;
+    uint16_t DllCharacteristics;
+    uint32_t SizeOfStackReserve;
+    uint32_t SizeOfStackCommit;
+    uint32_t SizeOfHeapReserve;
+    uint32_t SizeOfHeapCommit;
+    uint32_t LoaderFlags;
+    uint32_t NumberOfRvaAndSizes;
+    struct IMAGE_DATA_DIRECTORY DataDirectory[16];
+  }
+
+    struct IMAGE_DATA_DIRECTORY {
+      uint32_t VirtualAddress;//数据块起始RVA(relative virtual address)
+      uint32_t Size;
+    }
+#+end_src
+
+数据目录表包含了很多指向不同表（非section）的数据目录项。
+
+因为不同表的结构不同，因此不仅需要一个指针，还需要一个大小来标识结束位置。
+
+|-------------------------------+--------------------------------------|
+| name                          | structure                            |
+| Export Table                  | IMAGE_DIRECTORY_ENTRY_EXPORT         |
+| Import Table                  | IMAGE_DIRECTORY_ENTRY_IMPORT         |
+| Resources Table               | IMAGE_DIRECTORY_ENTRY_IMPORT         |
+| Exception Table               | IMAGE_DIRECTORY_ENTRY_EXCEPTION      |
+| Security Table                | IMAGE_DIRECTORY_ENTRY_SECURITY       |
+| Base relocation Table         | IMAGE_DIRECTORY_ENTRY_BASERELOC      |
+| Debug                         | IMAGE_DIRECTORY_ENTRY_DEBUG          |
+| Copyright                     | IMAGE_DIRECTORY_ENTRY_COPYRIGHT      |
+| Global Ptr                    | IMAGE_DIRECTORY_ENTRY_GLOBALPTR      |
+| Thread local storage aka. TLS | IMAGE_DIRECTORY_ENTRY_TLS            |
+| Load configuration            | IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG    |
+| Bound Import                  | IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT   |
+| Import Address Table aka. IAT | IMAGE_DIRECTORY_ENTRY_IAT            |
+| Delay Import                  | IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT   |
+| COM descriptor                | IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR |
+|-------------------------------+--------------------------------------|
+
+* Sections
+
+紧跟IMAGE_NT_HEADERS结构，是一个IMAGE_SECTION_HEADER结构数组，数量由IMAGE_NT_HEADERS.FileHeader.NumOfSections指出。
+
+#+begin_src c
+  struct IMAGE_SECTION_HEADER {
+    uint8_t Name[8];
+    union Misc {
+      uint32_t PhysicalAddress;
+      uint32_t VirtualSize;
+    } Misc;
+    uint32_t VirtualAddress; //区块的rva
+    uint32_t SizeOfRawData;  //文件中对齐后的尺寸
+    uint32_t PointerToRawData;  //文件偏移
+    uint32_t PointerToRelocations;  //在OBJ中使用，重定位表的文件偏移
+    uint32_t PointerToLinenumbers;
+    uint8_t NumberOfRelocations;  //在OBJ中使用， 重定位表项目数
+    uint8_t NumberOfLinenumbers;
+    uint32_t Characteristics;
+  }
+#+end_src
+
+* 输入表
+
+IT Import Table
+
+数据目录表的第二项指向输入表。
+
+输入表以一个IMAGE_IMPORT_DESCRIPTOR(IID)数组开始，每个被隐式链接的DLL都有一个IID。数组的末尾以NULL标志结束。
+
+#+begin_src c
+  struct IMAGE_IMPORT_DESCRIPTOR {
+    union u {
+      uint32_t Characteristics;
+      uint32_t OriginalFirstThunk;
+    } u;
+    uint32_t TimeDateStamp;
+    uint32_t ForwarderChain;
+    uint32_t Name;
+    uint32_t FirstThunk;
+  }
+#+end_src
+
+加载器到这时候其实已经把程序映射到虚拟内存了，所以这时候所用的不再是文件偏移而是rva。
+
+一开始，OriginalFirstThunk和FirstThunk字段的值是指向两个相同的数组。
+
+分别叫做INT（Import Name Table）和IAT（Import Address Table），元素项的结构是IMAGE_THUNK_DATA，以NULL结尾。
+
+#+begin_src c
+  struct IMAGE_THUNK_DATA {
+    union u1 {
+      uint32_t ForwarderString;
+      uint32_t Function;
+      uint32_t Ordinal;
+      uint32_t AddressOfData;
+    } u1;
+  }
+#+end_src
+
+一般就是一个指针，指向一个数组中的某一项，每一项是IMAGE_IMPORT_NAME结构。
+
+#+begin_src c
+  struct IMAGE_IMPORT_BY_NAME {
+    uint16_t Hint;
+    uint8_t Name[?];//一个长度不固定，以NULL结尾的字符串。
+  }
+#+end_src
+
+加载器处理之后，加载进内存之后，IAT中的值就变成了实际函数的引入之后的地址，之后程序只需要IAT就可以访问导入的函数。
+
+

@@ -1,0 +1,16 @@
+#+title: wp-actf2020newbie-rome
+#+author: Peerin
+#+date: <2023-10-31 周二>
+
+关键代码：
+
+#+begin_src c
+  for ( i = 0; i <= 15; ++i )
+    {
+      if ( *((char *)v1 + i) > '@' && *((char *)v1 + i) <= 'Z' )
+	,*((_BYTE *)v1 + i) = (*((char *)v1 + i) - 51) % 26 + 'A';
+      if ( *((char *)v1 + i) > '`' && *((char *)v1 + i) <= 'z' )
+	,*((_BYTE *)v1 + i) = (*((char *)v1 + i) - 79) % 26 + 'a';
+    }
+#+end_src
+
