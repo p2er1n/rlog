@@ -14,3 +14,35 @@
     }
 #+end_src
 
+
+write up:
+
+#+begin_src python
+  sec = "Qsw3sj_lz4_Ujw@l"
+  s = [c for c in sec]
+  for i in range(16):
+      if(s[i].isupper()):
+	  for c in range(ord('A'),ord('Z')+1):
+	      if((c-51)%26+ord('A')==ord(sec[i])):
+		  s[i] = chr(c)
+      elif(s[i].islower()):
+	  for c in range(ord('a'),ord('z')+1):
+	      if((c-79)%26+ord('a')==sec[i]):
+		  s[i] = chr(c)
+            
+  for c in s:
+      print(c,end='')
+  print('')    
+#+end_src
+
+这种题目画一个新旧对应图就好了，
+
+flag中的非字母在secret中不变
+flag中的大写字母在secret中仍然是大写字母
+flag中的小写字母在secret中仍然是小写字母
+
+因此，
+
+对于secret中的非字母，保持不变即是flag中的相应字符
+对于secret中的大写字母，flag中的相应原字符一定也是大写字母
+对于secret中的小写字母，flag中的相应原字符一定也是小写字母
