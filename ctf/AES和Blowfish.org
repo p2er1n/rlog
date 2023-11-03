@@ -102,16 +102,16 @@ Rcon是对每个输入（32位）异或上本轮的rcon常量。
     //for(i, 0 .. 2)w[i]=w[i+1]; w[3] = old_w[0];
     //map(w, s_box)
     //w[0] ^ rcon[i]
-  
+
   }
 
   void gen_sub_keys(uint8_t k[4][4], uint8_t sk[11][4][4]){
     //k[0] ^ g(k[3]) ^ k[1] ^ k[2] ^ k[3]
-  
+    
   }
 
   void encrypt(uint8_t v[4][4], uint8_t k[4][4]){
-    
+
   }
 #+end_src
 

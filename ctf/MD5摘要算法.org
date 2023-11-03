@@ -1,0 +1,88 @@
+#+title: MD5摘要算法
+#+author: Peerin
+#+date: <2023-11-03 周五>
+
+Message-Digest Algorithm 5
+
+对任意长度的输入产生128位的消息摘要。
+
+* 消息填充
+
+填充消息使得消息在添加一个1和至少一个0之后的位数模512余448。
+
+#+begin_src c
+
+  type struct Bits {
+    uint8_t *data;
+    size_t bits_len;
+  } Bits;
+
+  Bits filling(Bits d){
+    size_t needed_zeros = 448 - (d.bits_len+2) % 512 + 1;
+    size_t new_bits_len = d.bits_len+1+needed_zeros;
+    size_t needed_bytes = new_bits_len/8;
+    uint8_t *new_data = (uint8_t *)malloc(sizeof(uint8_t)*needed_bytes);
+    memset(new_data, 0, needed_bytes);
+    memcpy(new_data, d.data, d.bits_len/8 + (d.bits_len%8==0?0:1));
+    size_t last_byte_pos = d.bits_len/8;
+    size_t the_1_pos = d.bits_len%8;
+    new_data[last_byte_pos] |= 1 << the_1_pos;
+    Bits dd;
+    dd.data = new_data;
+    dd.bits_len = new_bits_len;
+    return dd;
+  }
+#+end_src
+
+* 添加长度
+
+附上64位的消息长度（填充前，如果超过取低64位）
+
+#+begin_src c
+  void append_len(Bits d, uint64_t bits_len){
+    size_t new_bits_len = d.bits_len + 64;
+    uint8_t *new_data = malloc(sizeof(uint8_t)*(new_bits_len/8));
+    memcpy(new_data, d.data, d.bits_len/8);
+    for(int i = 0;i < 8;++i){
+      new_data[d.bits_len/8+i] = (uint8_t)(bits_len & ((uint64_t)0xff << (i*8))) >> (i*8);
+    }
+    free(d.data);
+    d.data = new_data;
+    d.bits_len = new_bits_len;
+  }
+#+end_src
+
+* 初始化变量
+
+四个32位变量A,B,C,D
+
+#+begin_src c
+
+  uint32_t A = 0x01234567;
+
+  uint32_t B = 0x89abcdef;
+
+  uint32_t C = 0xfedcba98;
+
+  uint32_t D = 0x76543210;
+
+#+end_src
+
+即从0到f再回到0。
+
+* 数据处理
+
+对每512位数据，进行4轮操作，计算出变化之后的A,B,C,D再加到A,B,C,D上。
+
+#+begin_src c
+  
+#+end_src
+
+
+* 输出
+
+输出处理之后的A,B,C,D
+
+#+begin_src c
+  
+#+end_src
