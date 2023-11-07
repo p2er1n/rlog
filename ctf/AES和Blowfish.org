@@ -98,20 +98,59 @@ Rcon是对每个输入（32位）异或上本轮的rcon常量。
 	  mix_array[i][3] * temp_array[3][j];
   }
 
-  void g_func(uint8_t *w[4]){
+  void g_func(uint8_t ww[4], uint8_t w[4], int cnt){
     //for(i, 0 .. 2)w[i]=w[i+1]; w[3] = old_w[0];
     //map(w, s_box)
     //w[0] ^ rcon[i]
-
+    const uint8_t rcon[11] = { 0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36 };
+    memcpy(ww, w, sizeof(ww));
+    uint8_t b0 = ww[0];
+    for(int i = 0;i < 3;++i)
+      ww[i] = ww[i+1];
+    ww[3] = b0;
+    g_func_s_box(ww);
+    ww[0] ^= rcon[cnt];
   }
 
-  void gen_sub_keys(uint8_t k[4][4], uint8_t sk[11][4][4]){
+  void xor(uint8_t w1[4], uint8_t w2[4]){
+    for(int i = 0;i < 4;++i)
+      w1[i] ^= w2[i];
+  }
+
+  void gen_sub_keys(uint8_t k[4][4], uint8_t sk[12][4][4]){
     //k[0] ^ g(k[3]) ^ k[1] ^ k[2] ^ k[3]
+    uint8_t w[4][4];
+    for(int i = 0;i < 4;++i)
+      for(int j = 0;j < 4;++j)
+	w[i][j] = k[j][i];
+  
+    memcpy(sk[0], w, sizeof(w));
+    for(int i = 1;i <= 11;++i){
     
+      uint8_t w3_g[4];
+      g_func(w3_g, w[3], i);
+    
+      xor(w[0], w3_g);
+      xor(w[1], w[0]);
+      xor(w[2], w[1]);
+      xor(w[3], w[2]);
+    
+      memcpy(sk[i], w, sizeof(w));
   }
 
   void encrypt(uint8_t v[4][4], uint8_t k[4][4]){
-
+    uint8_t subk[12][4][4];
+    gen_sub_keys(k,subk);
+    add_round_key(v, subk[0]);
+    for(int i = 1;i <= 10;++i){
+      sub_s_box(v);
+      shift_rows(v);
+      mix_colums(v);
+      add_round_key(v, subk[i]);
+    }
+    sub_s_box(v);
+    shift_rows(v);
+    add_round_key(v, subk[11]);
   }
 #+end_src
 

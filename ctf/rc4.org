@@ -1,0 +1,55 @@
+#+title: rc4
+#+author: Peerin
+#+date: <2023-11-07 周二>
+
+一种流密码，加密和解密函数相同，密钥长度不固定。
+
+* 过程
+
+1. 根据密钥生成打乱256字节S数组 （KSA，Key Scheduling algorithm， 密钥调度算法）
+   
+2. 生成密钥流，长度按照明文要求。
+
+3. 逐字节使用密钥流和明文异或生成密文
+
+#+begin_src c
+  #include <stdio.h>
+  #include <stdint.h>
+  #include <stdlib.h>
+
+  #define MAX_KEY_LEN 200
+  #define MAX_PLAIN_LEN 200
+
+  uint8_t key[MAX_KEY_LEN]={'W','i','k','i'},s[256];
+  size_t key_len=4;
+  uint8_t plain[MAX_PLAIN_LEN]={0x10,0x21,0xBF,0x04,0x20};
+  size_t plain_len=5;
+  int main(){
+    for(int i = 0;i < 256;++i)
+      s[i] = i;
+    int j = 0;
+    for(int i = 0;i < 256;++i){
+      j = (j+s[i]+key[i % key_len]) % 256;
+      uint8_t tmp = s[i];
+      s[i] = s[j];
+      s[j] = tmp;
+    }
+    int i = 0;
+    j = 0;
+    for(int ii = 0;ii < plain_len;++ii){
+      i = (i+1)%256;
+      j = (j+s[i])%256;
+      uint8_t tmp = s[i];
+      s[i] = s[j];
+      s[j] = tmp;
+      uint8_t t = (s[i] + s[j])%256;
+      uint8_t k = s[t];
+      plain[ii] ^= k;
+      //printf("%x", k);
+    }
+    for(int ii = 0;ii < plain_len;++ii)
+      printf("%c ", plain[ii]);
+    printf("\n");
+    return 0;
+  }
+#+end_src 
