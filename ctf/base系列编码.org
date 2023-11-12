@@ -1,0 +1,80 @@
+#+title: base系列编码
+#+author: Peerin
+#+date: <2023-11-12 周日>
+
+base系列编码有base64, base24, base32, base60
+
+不同base编码，码表不同，分组长度不同，其他都是类似的。
+
+步骤是，先把输入数据分组，按照码表的长度进行分组，以原数据为索引，查表转换。
+
+解码的步骤是先查表找到索引，然后拼接。
+
+#+begin_src c
+  #include <stdio.h>
+  #include <stdint.h>
+  #include <string.h>
+
+  #define MAX_INPUT_LEN 1000
+
+  char base64_table[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+  uint8_t input[MAX_INPUT_LEN];
+  size_t input_len;
+
+  void decode(){
+
+    scanf("%s", input);
+    input_len = strlen(input);
+
+    for(int i = 0;i < input_len;i+=4){
+      uint32_t ui32_24 = 0;
+      for(int j = i;j < i+4;++j){
+	ui32_24 <<= 6;
+	uint8_t k = 0;
+	while(k < 64 && base64_table[k] != input[j]) k++;
+	ui32_24 |= k & 0x3f;
+      }
+      for(int j = 2;j >= 0;--j){
+	printf("%c", (ui32_24 & (0xff << (j*8))) >> (j*8));
+      }
+    }
+  }
+
+  int main(){
+
+    scanf("%s", input);
+    input_len = strlen(input);
+
+    if(strcmp(input, "decode") == 0){
+      decode();
+      return 0;
+    }
+  
+    int i = 0;
+    while(i < input_len){
+      uint32_t ui32_24 = 0;
+      int cnt = 0;
+      while(cnt < 3 && i < input_len){
+	ui32_24 <<= 8;
+	ui32_24 |= input[i++];
+	cnt++;
+      }
+      for(int j = 3-cnt;j > 0;--j) ui32_24 <<= 8;
+      uint8_t ui8_6s[4];
+      for(int j = 3;j >= 0;--j){
+	if((4-j) <= cnt+1){
+	  ui8_6s[3-j] = (ui32_24 & (0x3f << (j*6))) >> (j*6);
+	  printf("%c", base64_table[ui8_6s[3-j]]);
+	}
+	else{
+	  printf("%c", '=');	
+	}
+      }
+    }
+    return 0;
+  }
+
+#+end_src
+
+base系列其他编码类似，只是table长度变了，不是取6位做索引了。
